@@ -488,6 +488,19 @@ class FrameProcessor(BaseObject):
             if frame:
                 await self.push_frame(frame)
 
+    async def start_stt_usage_metrics(self, audio_duration_seconds: float):
+        """Start STT usage metrics collection.
+
+        Args:
+            audio_duration_seconds: Duration in seconds of audio processed by STT.
+
+        Returns:
+            MetricsFrame containing STT usage data, or None if metrics are disabled.
+        """
+        if self.can_generate_metrics() and self.usage_metrics_enabled:
+            return await self._metrics.start_stt_usage_metrics(audio_duration_seconds)
+        return None
+
     async def start_text_aggregation_metrics(self):
         """Start text aggregation time metrics collection."""
         if self.can_generate_metrics() and self.metrics_enabled:

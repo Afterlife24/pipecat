@@ -16,6 +16,7 @@ from pipecat.metrics.metrics import (
     LLMUsageMetricsData,
     MetricsData,
     ProcessingMetricsData,
+    STTUsageMetricsData,
     TextAggregationMetricsData,
     TTFBMetricsData,
     TTSUsageMetricsData,
@@ -189,6 +190,23 @@ class FrameProcessorMetrics(BaseObject):
         )
         logger.debug(f"{self._processor_name()} usage characters: {characters.value}")
         return MetricsFrame(data=[characters])
+
+    async def start_stt_usage_metrics(self, audio_duration_seconds: float):
+        """Record STT audio duration usage metrics.
+
+        Args:
+            audio_duration_seconds: Duration in seconds of audio processed by STT.
+
+        Returns:
+            MetricsFrame containing STT usage data.
+        """
+        stt_usage = STTUsageMetricsData(
+            processor=self._processor_name(),
+            model=self._model_name(),
+            value=audio_duration_seconds,
+        )
+        logger.debug(f"{self._processor_name()} STT audio duration: {stt_usage.value:.3f}s")
+        return MetricsFrame(data=[stt_usage])
 
     async def start_text_aggregation_metrics(self):
         """Start measuring text aggregation time (first token to first sentence)."""

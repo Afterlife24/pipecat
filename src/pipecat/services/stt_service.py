@@ -169,6 +169,11 @@ class STTService(AIService):
         self._keepalive_task: asyncio.Task | None = None
         self._last_audio_time: float = 0
 
+        # Speech duration tracking for STT usage metrics.
+        # Records wall-clock time when the user started speaking so we can
+        # compute the audio duration billed to the STT service.
+        self._speech_start_time: float = 0.0
+
         # VAD-aware reconnect state
         # Whether it is safe to reconnect right now (False while the user is speaking).
         self._can_reconnect: bool = True
@@ -481,6 +486,15 @@ class STTService(AIService):
                 # Cancel the timeout since we've already reported
                 await self._cancel_ttfb_timeout()
 
+            # Emit STT usage metrics on every finalized transcription so the
+            # aggregator accumulates the total audio duration for the call.
+            if frame.finalized and self._speech_start_time > 0:
+                audio_duration = time.monotonic() - self._speech_start_time
+                self._speech_start_time = 0.0
+                metrics_frame = await self.start_stt_usage_metrics(audio_duration)
+                if metrics_frame:
+                    await super().push_frame(metrics_frame, direction)
+
         await super().push_frame(frame, direction)
 
     @property
@@ -541,6 +555,7 @@ class STTService(AIService):
         self._finalize_requested = False
         self._finalize_pending = False
         self._last_transcript_time = 0
+        self._speech_start_time = time.monotonic()
 
     async def _maybe_reconnect_on_user_stopped_speaking(self):
         """Check if reconnection is needed after the user stops speaking.

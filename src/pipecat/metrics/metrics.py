@@ -87,6 +87,16 @@ class TTSUsageMetricsData(MetricsData):
     value: int
 
 
+class STTUsageMetricsData(MetricsData):
+    """Speech-to-Text usage metrics data.
+
+    Parameters:
+        value: Duration in seconds of audio processed by STT.
+    """
+
+    value: float
+
+
 class TextAggregationMetricsData(MetricsData):
     """Text aggregation time metrics data.
 
