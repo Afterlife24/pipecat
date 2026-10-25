@@ -2176,12 +2176,31 @@ class GeminiLiveLLMService(LLMService[GeminiLLMAdapter]):
         completion_tokens = usage.response_token_count or 0
         total_tokens = usage.total_token_count or (prompt_tokens + completion_tokens)
 
+        # Per-modality split (AUDIO/TEXT) so speech-to-speech billing can price
+        # text and audio tokens separately. Gemini reports these as lists of
+        # ModalityTokenCount; absent → None (not a text-only LLM assumption).
+        def _modality(details, modality: str) -> int | None:
+            if not details:
+                return None
+            total = None
+            for d in details:
+                name = getattr(getattr(d, "modality", None), "name", None) or str(
+                    getattr(d, "modality", "")
+                )
+                if name.upper().endswith(modality):
+                    total = (total or 0) + (getattr(d, "token_count", 0) or 0)
+            return total
+
         tokens = LLMTokenUsage(
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,
             cache_read_input_tokens=usage.cached_content_token_count,
             reasoning_tokens=usage.thoughts_token_count,
+            prompt_text_tokens=_modality(usage.prompt_tokens_details, "TEXT"),
+            prompt_audio_tokens=_modality(usage.prompt_tokens_details, "AUDIO"),
+            completion_text_tokens=_modality(usage.response_tokens_details, "TEXT"),
+            completion_audio_tokens=_modality(usage.response_tokens_details, "AUDIO"),
         )
 
         await self.start_llm_usage_metrics(tokens)

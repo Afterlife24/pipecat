@@ -1013,17 +1013,21 @@ class OpenAIRealtimeLLMService(LLMService[OpenAIRealtimeLLMAdapter]):
     async def _handle_evt_response_done(self, evt):
         # todo: figure out whether there's anything we need to do for "cancelled" events
         # usage metrics
-        cached_tokens = (
-            evt.response.usage.input_token_details.cached_tokens
-            if hasattr(evt.response.usage, "input_token_details")
-            and evt.response.usage.input_token_details
-            else None
-        )
+        usage = evt.response.usage
+        input_details = getattr(usage, "input_token_details", None)
+        output_details = getattr(usage, "output_token_details", None)
+        cached_tokens = input_details.cached_tokens if input_details else None
         tokens = LLMTokenUsage(
-            prompt_tokens=evt.response.usage.input_tokens,
-            completion_tokens=evt.response.usage.output_tokens,
-            total_tokens=evt.response.usage.total_tokens,
+            prompt_tokens=usage.input_tokens,
+            completion_tokens=usage.output_tokens,
+            total_tokens=usage.total_tokens,
             cache_read_input_tokens=cached_tokens,
+            # Per-modality split so speech-to-speech billing can price text and
+            # audio tokens separately (OpenAI reports both in token details).
+            prompt_text_tokens=getattr(input_details, "text_tokens", None),
+            prompt_audio_tokens=getattr(input_details, "audio_tokens", None),
+            completion_text_tokens=getattr(output_details, "text_tokens", None),
+            completion_audio_tokens=getattr(output_details, "audio_tokens", None),
         )
         await self.start_llm_usage_metrics(tokens)
         await self.stop_processing_metrics()

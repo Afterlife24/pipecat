@@ -57,6 +57,12 @@ class LLMTokenUsage(BaseModel):
         total_tokens: Total number of tokens used (prompt + completion).
         cache_read_input_tokens: Number of tokens read from cache, if applicable.
         cache_creation_input_tokens: Number of tokens used to create cache entries, if applicable.
+        prompt_text_tokens: Text tokens in the input, when the provider reports a
+            per-modality breakdown (realtime/speech-to-speech models). None when
+            not reported.
+        prompt_audio_tokens: Audio tokens in the input, per-modality breakdown.
+        completion_text_tokens: Text tokens in the output, per-modality breakdown.
+        completion_audio_tokens: Audio tokens in the output, per-modality breakdown.
     """
 
     prompt_tokens: int
@@ -65,6 +71,12 @@ class LLMTokenUsage(BaseModel):
     cache_read_input_tokens: int | None = None
     cache_creation_input_tokens: int | None = None
     reasoning_tokens: int | None = None
+    # Per-modality split, populated by realtime (speech-to-speech) services that
+    # bill text and audio tokens at different rates. None for text-only LLMs.
+    prompt_text_tokens: int | None = None
+    prompt_audio_tokens: int | None = None
+    completion_text_tokens: int | None = None
+    completion_audio_tokens: int | None = None
 
 
 class LLMUsageMetricsData(MetricsData):
