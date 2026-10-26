@@ -1,4 +1,7 @@
-from typing import Any, Mapping
+"""Helpers for resolving the MPS correlation id and billing version from run metadata."""
+
+from collections.abc import Mapping
+from typing import Any
 
 MPS_CORRELATION_ID_METADATA_KEY = "mps_correlation_id"
 MPS_BILLING_VERSION_KEY = "mps_billing_version"
@@ -11,6 +14,11 @@ def get_correlation_id(
     explicit_correlation_id: str | None,
     start_metadata: Mapping[str, Any] | None,
 ) -> str | None:
+    """Return the MPS correlation id for a run.
+
+    Prefers an explicit id; otherwise reads it from the run's start metadata,
+    falling back to the workflow run id. Returns None when none is available.
+    """
     if explicit_correlation_id:
         return explicit_correlation_id
 
@@ -31,6 +39,7 @@ def uses_mps_billing_v2(
     explicit_correlation_id: str | None,
     start_metadata: Mapping[str, Any] | None,
 ) -> bool:
+    """Return True when the run carries an MPS v2 correlation id (explicit or in metadata)."""
     return bool(
         explicit_correlation_id
         or (start_metadata and start_metadata.get(MPS_CORRELATION_ID_METADATA_KEY))
